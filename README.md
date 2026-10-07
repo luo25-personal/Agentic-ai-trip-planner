@@ -4,7 +4,7 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 日本旅遊 AI Agent：即時空房查詢、天氣資訊與行程安排建議。
 
-> 🚧 開發中（Work in progress）。目前完成：專案規劃與合規評估。下一步：空房查詢後端。
+> 🚧 開發中（Work in progress）。目前完成：專案規劃、資料來源評估、架構設計。下一步：空房查詢後端。
 
 ## 架構
 
@@ -13,8 +13,50 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 ```
 
 - **前端**：靜態網頁，輸入條件並顯示結果。
-- **後端函式**：保管 API 金鑰、檢查參數、快取與頻率限制。金鑰不會出現在前端。
+- **後端函式**：保管 API 金鑰、檢查參數、快取與頻率限制。
 - **部署**：Vercel。
+
+### 規劃中
+
+- **Supervisor 多 Agent 架構**：空房 Agent、天氣 Agent、行程 Agent，由 Supervisor 分派與整合
+- 自然語言查詢（Gemini），例如「8/6 青森站附近禁菸雙人房，一晚 8,000 日圓內」
+- 客滿時自動搜尋附近的替代飯店或調整日期
+
+## 設計決策
+
+### 資料來源：只用官方開放的 API
+
+評估過的選項與結論：
+
+| 來源 | 結論 | 原因 |
+|---|---|---|
+| Booking.com / Agoda API | ✗ | 僅限簽約的合作夥伴 |
+| 爬取訂房網站 | ✗ | 違反使用條款，且不穩定 |
+| Web search | ✗ | 無法帶日期查詢，資料不即時，LLM 容易把舊資訊當成現況 |
+| Google Hotels（第三方 API） | △ | 只有價格，無法判斷是否有空房；免費額度少 |
+| **樂天トラベル空室検索API** | ✓ | 官方公開、免費、可直接判斷有無空房、可篩選禁菸房 |
+
+### 為什麼需要後端
+
+即使把金鑰放在環境變數，純前端網站在建置時仍會把它打包進 JavaScript，訪客打開開發者工具就看得到。因此由後端函式持有金鑰，前端只呼叫自己的 `/api/search`。
+
+## 安全與隱私
+
+- **金鑰只存在伺服器端**：放在 Vercel 環境變數，不進程式碼、不進 git 歷史，前端也拿不到。
+- **後端防護**：參數白名單（避免被當成任意代理）、每個 IP 的頻率限制、回應快取、CORS 只允許本站。
+- **錯誤處理不外洩**：錯誤訊息不回傳上游請求內容。
+- **網域白名單**：API 端只接受來自本站網域的請求。
+- **不蒐集個資**：不需要登入、不保存搜尋紀錄、不使用追蹤工具。
+
+## 使用條款遵循
+
+本專案逐條檢視了 Rakuten Web Service 使用條款，並在設計上對應：
+
+- 網站對外公開，任何人都能使用
+- 即時查詢、即時顯示，不保存或轉發 API 資料
+- 搜尋結果附上樂天的訂房連結，不混入其他訂房網站的連結
+- 控制請求頻率並使用快取，避免對 API 造成負擔
+- 標示資料來源，並聲明非官方服務
 
 ## 資料來源
 
@@ -31,8 +73,3 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 ## 本機開發
 
 （待補）
-
-## 合規
-
-本專案遵守 Rakuten Web Service 使用條款，檢查清單見 [`docs/RAKUTEN_COMPLIANCE.md`](docs/RAKUTEN_COMPLIANCE.md)。
-安全與隱私做法見 [`docs/SECURITY_AND_COST.md`](docs/SECURITY_AND_COST.md)。
