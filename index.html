@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agentic AI Trip Planner</title>
+  <meta name="description" content="日本旅遊 AI Agent：空房查詢、天氣與行程安排（開發中）">
+  <style>
+    :root { --bg: #f7f5f2; --fg: #1f1d1a; --muted: #6b665f; --line: #e2ddd6; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #161513; --fg: #ece8e2; --muted: #a39d94; --line: #2c2a26; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+      background: var(--bg); color: var(--fg);
+      font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", sans-serif;
+      line-height: 1.6;
+    }
+    main { flex: 1; display: grid; place-items: center; padding: 48px 16px; }
+    .card { max-width: 560px; text-align: center; }
+    h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 0 0 8px; letter-spacing: -0.02em; }
+    p { margin: 0 0 8px; color: var(--muted); }
+    .tag {
+      display: inline-block; margin-bottom: 20px; padding: 4px 12px;
+      border: 1px solid var(--line); border-radius: 999px; font-size: 0.85rem; color: var(--muted);
+    }
+    footer {
+      border-top: 1px solid var(--line); padding: 16px; font-size: 0.8rem;
+      color: var(--muted); text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <span class="tag">Coming soon・開發中</span>
+      <h1>Agentic AI Trip Planner</h1>
+      <p>日本旅遊 AI Agent：即時空房查詢、天氣資訊與行程安排建議。</p>
+    </div>
+  </main>
+  <footer>
+    本網站由個人開發與經營，非樂天集團官方服務，與樂天集團無合作關係。本網站不蒐集使用者的個人資料。
+  </footer>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# ── 金鑰與環境變數（絕不 commit）──
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# ── API 回傳的測試資料（樂天條款第 10 條 1 項 (9)：不可公開存放）──
+samples/
+responses/
+*.response.json
+
+# ── 私人筆記（只留在本機，不進 repo）──
+notes/
+
+# ── Cloudflare Worker / Node ──
+node_modules/
+.wrangler/
+dist/
+
+# ── Python ──
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ── 編輯器與系統 ──
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
