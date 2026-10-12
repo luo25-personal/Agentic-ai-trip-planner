@@ -20,7 +20,7 @@ import json
 import logging
 import os
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
@@ -53,13 +53,19 @@ SYSTEM_PROMPT = """你是日本旅遊規劃助理，使用繁體中文回答。�
 
 規則：
 1. 飯店、空房、價格、天氣只能根據工具結果回答，絕對不可以自己編造數字或飯店名稱。
+   search_hotels 失敗或沒有結果時，只說明「目前查不到空房資料」並建議換日期、擴大範圍或稍後再試，
+   不可以用自己的知識推薦任何飯店名稱。
 2. 旅行日期一定要明確：
    - 使用者說要去旅行（例如「要去」「想去」「下個月去京都」），但沒有給明確的出發日和回程日（或住幾晚）時，
      先不要呼叫任何工具，用一句話詢問具體日期，例如「請問是幾月幾號出發、住幾晚呢？」。
      可以順便提出你的理解讓使用者確認，例如「11 月底是指 11/28 出發、住 1 晚嗎？」，但使用者確認前不要當成已知。
-   - 算明確的：能換算成具體日期的說法，例如「11/20」「下週五」「10/16–10/18」「11/20 起住 2 晚」「11/20 出發，兩天一夜」。
-     依今天的日期換算成 YYYY-MM-DD；沒說年份就用最近的未來日期；「兩天一夜」＝住 1 晚，「三天兩夜」＝住 2 晚。
-   - 不算明確的：「11 月底」「下個月」「秋天」「連假」「三個月後」「過年」這類範圍或模糊說法，一定要先問。
+   - 算明確的：有寫出「月/日」的日期，例如「11/20」「10/16–10/18」「11/20 起住 2 晚」「11/20 出發，兩天一夜」。
+     換算成 YYYY-MM-DD；沒說年份就用最近的未來日期。
+     退房日＝入住日＋住幾晚：「住一晚」「兩天一夜」＝1 晚，「三天兩夜」＝2 晚。例如 10/23 入住、住 1 晚，退房日是 10/24。
+   - 不算明確的，一定要先問，不要自己換算：
+     - 相對的說法：「明天」「後天」「這週五」「下週五」「這個週末」「三天後」
+     - 範圍或模糊的說法：「11 月底」「下個月」「秋天」「連假」「三個月後」「過年」
+     詢問時說明原因並請使用者給「月/日」，例如：「為了避免日期弄錯，請告訴我確切的入住日期（例如 10/23）和住幾晚。」
    - 只是問一般資訊、沒有說要去旅行（例如「京都有什麼紅葉景點？」），可以直接回答，不用問日期。
    - 查飯店還需要地點和人數，缺少的話跟日期一起問，一次問完，不要自己猜。
 3. 查飯店或天氣前，先用 find_place 取得座標：name 填日文地名（車站要用「駅」，例如「青森站」→「青森駅」），name_en 填所在城市的英文拼音（例如 "Aomori"）。
@@ -127,6 +133,14 @@ def _model():
     )
 
 
+WEEKDAYS = "一二三四五六日"
+TAIWAN_TZ = timezone(timedelta(hours=8))  # 台灣時間（使用者在台灣）。Vercel 伺服器用 UTC，直接用 date.today() 早上會差一天
+
+
+def _today() -> date:
+    return datetime.now(TAIWAN_TZ).date()
+
+
 async def build_agent():
     search_tools = await _mcp.get_search_tools()  # 沒有設定 Tavily 金鑰時是空清單
     return create_agent(
@@ -138,7 +152,7 @@ async def build_agent():
                 if search_tools
                 else "- （目前沒有網路搜尋工具）"
             ),
-            today=date.today().isoformat(),
+            today=f"{_today().isoformat()}（星期{WEEKDAYS[_today().weekday()]}）",
             forecast_until=(date.today() + timedelta(days=_tools.FORECAST_DAYS - 1)).isoformat(),
         ),
     )

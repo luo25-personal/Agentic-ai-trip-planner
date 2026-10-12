@@ -3,9 +3,15 @@ import { nextTick, ref } from 'vue'
 import ChatMessage from './ChatMessage.vue'
 import { chat } from '../api.js'
 
+// 範例的日期從今天往後算，才不會過期；也用「月/日」寫法，AI 才不會反問日期
+const md = (days) => {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
 const EXAMPLES = [
-  '下週五去青森住一晚，2 個大人，想住車站附近的禁菸房，順便看天氣',
-  '11/27 去京都兩天一夜，2 個人，推薦紅葉景點，也找車站附近的住宿',
+  `${md(10)} 去青森住一晚，2 個大人，想住車站附近的禁菸房，順便看天氣`,
+  `${md(30)} 去京都兩天一夜，2 個人，推薦景點，也找車站附近的住宿`,
 ]
 const MAX_TEXT = 500
 
