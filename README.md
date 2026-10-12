@@ -8,7 +8,20 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 🔗 **網站：<https://agentic-ai-trip-planner.vercel.app>**
 
-**技術**：Vue 3 · Vite · Leaflet ｜ Python · FastAPI ｜ LangChain · Gemini Flash-Lite · MCP（Tavily）｜ Vercel
+**技術**
+
+- **AI Agent**：LangChain · MCP（Model Context Protocol）· Gemini Flash-Lite
+- **Frontend**：Vue 3 · Vite · Leaflet
+- **Backend**：Python · FastAPI
+- **Deployment**：Vercel
+
+## 專案簡介
+
+以 AI Agent 為核心的日本旅遊規劃網站。語言模型會根據使用者的敘述，自行決定要調用哪些工具（即時空房、天氣、景點定位）或上網搜尋資料。使用者透過聊天，就能一步步聊出想去的景點和住宿；選好的地點會標示在地圖上，最後還能生成旅遊書，一鍵存成 PDF。
+
+- **Tool calling 與多步驟推理**：Agent 依需求自行選擇、串接多個工具，例如先查地點座標，再查附近空房與當地天氣。
+- **MCP 整合**：網路搜尋透過 Model Context Protocol 接入 Tavily。
+- **多個分工的 Agent**：聊天 Agent 負責找飯店和景點；行程 Agent 讀取行程清單與距離，建議造訪順序；旅遊書以結構化輸出（Pydantic schema）產生固定格式的內容。
 
 ## 功能
 
