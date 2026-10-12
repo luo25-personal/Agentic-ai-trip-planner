@@ -9,6 +9,7 @@
 """
 
 import math
+import re
 from datetime import date
 
 from langchain.agents import create_agent
@@ -32,8 +33,9 @@ SYSTEM_PROMPT = """你是日本旅遊的行程規劃助理，使用繁體中文�
 2. 景點沒有日期，請依距離和住宿日期建議安排在哪一天、哪間住宿附近。住宿有入住、退房日期時，順序要配合日期；日期重疊或銜接不上（例如退房日和下一間入住日不同）時，要提醒使用者。
 3. 你只知道直線距離，不知道實際交通方式、時間和票價。不要編造交通時間、班次或票價；
    需要時請使用者點行程中「交通方式（Google 地圖）」的連結查看。
-4. 想建議新的順序時，一定要呼叫 propose_order，畫面才會出現「套用這個順序」按鈕；
-   文字裡用編號和名稱說明順序和理由（例如「1 → 3 → 2」），每個理由一句話。
+4. 建議的順序跟目前清單不一樣時，一定要呼叫 propose_order，畫面才會出現「套用這個順序」按鈕；
+   文字裡用編號和名稱說明順序和理由（例如「3 → 1 → 2」），每個理由一句話。
+   沒有呼叫 propose_order 時，不要在文字裡提到「按鈕」或「套用」。
    順序沒有需要改時，直接說明即可，不要呼叫工具。
 5. 清單是空的或只有一個地點時，說明需要至少兩個地點才能排順序。
 6. 回覆簡潔，適合在手機上閱讀，可以用條列。只討論日本旅遊行程。
@@ -97,7 +99,7 @@ async def run(messages: list[dict], items: list[dict]) -> dict:
         model=_agent._model(),
         tools=[_order_tool(len(items))],
         system_prompt=SYSTEM_PROMPT.format(
-            today=date.today().isoformat(), items=item_text, distances=distance_text
+            today=_agent._today().isoformat(), items=item_text, distances=distance_text
         ),
     )
     try:
@@ -112,7 +114,25 @@ async def run(messages: list[dict], items: list[dict]) -> dict:
         elif isinstance(msg, ToolMessage) and (msg.artifact or {}).get("type") == "order":
             # 編號 → 項目 id，前端用 id 套用，清單之後若有變動也不會套錯
             order = [items[n - 1]["id"] for n in msg.artifact["order"]]
+    if order is None:
+        order = _order_from_text(reply, items)
     return {
         "reply": reply.strip() or "抱歉，我沒有產生回覆，請換個說法再試一次。",
         "order": order,
     }
+
+
+ORDER_PATTERN = re.compile(r"\d+(?:\s*(?:→|->|➡|⇒)\s*\d+)+")
+
+
+def _order_from_text(text: str, items: list[dict]) -> list[str] | None:
+    """
+    保底：AI 有時只在文字裡寫「3 → 1 → 2」，卻忘了呼叫 propose_order。
+    在文字裡找這種順序，編號剛好是 1～n 各一次、而且跟目前順序不同，才當成建議順序。
+    """
+    count = len(items)
+    for match in ORDER_PATTERN.findall(text or ""):
+        numbers = [int(n) for n in re.findall(r"\d+", match)]
+        if sorted(numbers) == list(range(1, count + 1)) and numbers != list(range(1, count + 1)):
+            return [items[n - 1]["id"] for n in numbers]
+    return None

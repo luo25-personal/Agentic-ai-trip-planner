@@ -120,7 +120,7 @@ async def generate(items: list[dict]) -> dict:
         raise GuidebookError(400, "行程清單是空的")
     _, distances = _planner._describe(items)
     model = _agent._model().with_structured_output(Guidebook)
-    prompt = SYSTEM_PROMPT.format(today=date.today().isoformat(), items=_describe(items), distances=distances)
+    prompt = SYSTEM_PROMPT.format(today=_agent._today().isoformat(), items=_describe(items), distances=distances)
     try:
         book = await model.ainvoke([("system", prompt), ("human", "請寫這趟旅程的旅遊書。")])
     except _agent.AgentError as err:
