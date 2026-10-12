@@ -138,7 +138,7 @@ const nameOf = (id) => trip.items.find((i) => i.id === id)?.name ?? '？'
 
         <div v-if="!trip.items.length" class="empty">
           <p>行程清單還是空的。</p>
-          <p class="muted">到「AI 規劃」聊天，在飯店或景點卡片上按「＋ 加入行程」。</p>
+          <p class="muted">到「和 AI 聊聊」，在飯店或景點卡片上按「＋ 加入行程」。</p>
           <button type="button" class="primary" @click="emit('go-search')">去找住宿和景點</button>
         </div>
 

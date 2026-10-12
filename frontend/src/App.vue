@@ -6,7 +6,7 @@ import TripPlanner from './components/TripPlanner.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import { trip } from './trip.js'
 
-// 三個分頁：AI 規劃（主要）／行程規劃／自己搜尋飯店。用 v-show 切換，切換時不會清掉對話或搜尋結果
+// 三個分頁：和 AI 聊聊（主要）／行程規劃／自己搜尋飯店。用 v-show 切換，切換時不會清掉對話或搜尋結果
 const mode = ref('agent')
 </script>
 
@@ -15,7 +15,7 @@ const mode = ref('agent')
     <header class="site">
       <strong>Agentic AI Trip Planner</strong>
       <nav class="tabs" aria-label="模式">
-        <button type="button" :aria-pressed="mode === 'agent'" @click="mode = 'agent'">AI 規劃</button>
+        <button type="button" :aria-pressed="mode === 'agent'" @click="mode = 'agent'">和 AI 聊聊</button>
         <button type="button" :aria-pressed="mode === 'trip'" @click="mode = 'trip'">
           行程規劃<span v-if="trip.items.length" class="badge">{{ trip.items.length }}</span>
         </button>
