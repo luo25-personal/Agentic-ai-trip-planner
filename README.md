@@ -6,6 +6,10 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 > 🚧 **持續開發中（Work in progress）**
 
+🔗 **網站：<https://agentic-ai-trip-planner.vercel.app>**
+
+**技術**：Vue 3 · Vite · Leaflet ｜ Python · FastAPI ｜ LangChain · Gemini Flash-Lite · MCP（Tavily）｜ Vercel
+
 ## 功能
 
 - **和 AI 聊聊**：用一句話描述需求（日期、地點、人數），AI Agent 自己決定要查空房、天氣、景點或上網搜尋，結果以卡片呈現
@@ -42,7 +46,17 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 | `POST /api/guidebook` | AI 旅遊書：根據行程清單寫旅遊書內容（固定格式），前端排版後可另存成 PDF |
 | `POST /api/trip-chat` | 行程討論 Agent：送出對話和行程清單，回覆建議的造訪順序（由使用者決定是否套用） |
 
-**Agent 設計**：價格、空房、天氣只取自工具結果，以卡片顯示，不經 AI 改寫，避免幻覺；AI 負責理解需求、選擇工具與整理建議。前端會顯示 Agent 使用了哪些工具。
+## Agent 設計
+
+價格、空房、天氣只取自工具結果，以卡片顯示，不經 AI 改寫，避免幻覺；AI 負責理解需求、選擇工具與整理建議。前端會顯示 Agent 使用了哪些工具。
+
+除了在 prompt 裡定規則，容易出錯的地方也用程式把關，不只靠 AI 遵守：
+
+- **日期不明確就先問**：「下週五」「月底」這類說法容易算錯，Agent 會先請使用者給確切的入住日期和晚數，再查空房。
+- **查不到就說查不到**：飯店名稱、價格只來自樂天的查詢結果；查詢失敗時直接告知，不會自己編出飯店。
+- **AI 漏呼叫工具時的保底**：AI 有時只在文字裡寫出建議順序（例如「3 → 1 → 2」）而沒呼叫工具，程式會從文字中解析出來，照樣顯示「套用這個順序」按鈕；回覆裡假的工具呼叫文字也會被清掉。
+- **工具結果再過濾**：天氣只保留旅行日期、重複的景點依座標去除、住宿日期重疊時由程式偵測並暫停排序，請使用者先決定住哪一間。
+- **建議由使用者決定**：AI 建議的順序不會直接改掉清單，要使用者按下「套用」才會生效。
 
 ## 設計決策
 
@@ -54,7 +68,7 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 |---|---|---|
 | Booking.com / Agoda API | ✗ | 僅限簽約的合作夥伴 |
 | 爬取訂房網站 | ✗ | 違反使用條款，且不穩定 |
-| Web search | ✗ | 無法帶日期查詢，資料不即時，LLM 容易把舊資訊當成現況 |
+| Web search | ✗（空房、價格） | 無法帶日期查詢，資料不即時，LLM 容易把舊資訊當成現況；只用在景點、活動等一般資訊 |
 | Google Hotels（第三方 API） | △ | 只有價格，無法判斷是否有空房；免費額度少 |
 | **樂天トラベル空室検索API** | ✓ | 官方公開、免費、可直接判斷有無空房、可篩選禁菸房 |
 
@@ -81,7 +95,13 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 ## 資料來源
 
-本網站的飯店與空房資料來自 [Rakuten Web Service](https://webservice.rakuten.co.jp/)。
+| 資料 | 來源 |
+|---|---|
+| 飯店、空房、價格 | [Rakuten Web Service](https://webservice.rakuten.co.jp/) |
+| 天氣預報 | [Open-Meteo](https://open-meteo.com/)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)） |
+| 地名、景點座標、地圖 | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors（[ODbL](https://opendatacommons.org/licenses/odbl/)），透過 Nominatim 查詢 |
+| 網路搜尋（景點、活動資訊） | [Tavily](https://tavily.com/) |
+| AI 模型 | [Google Gemini](https://ai.google.dev/) |
 
 ## 聲明
 
@@ -96,7 +116,7 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 ```bash
 # 後端
 pip install -r requirements-dev.txt
-cp .env.example .env.local      # 填入自己的樂天 API 金鑰
+cp .env.example .env.local      # Windows 用 copy .env.example .env.local
 python scripts/dev_server.py    # http://127.0.0.1:8000
 
 # 前端（另開一個終端機）
@@ -104,3 +124,9 @@ cd frontend
 npm install
 npm run dev                     # 打開 http://localhost:5173
 ```
+
+`.env.local` 需要填入自己的金鑰（說明見 `.env.example`）：
+
+- `RAKUTEN_APPLICATION_ID`、`RAKUTEN_ACCESS_KEY`：[Rakuten Web Service](https://webservice.rakuten.co.jp/)
+- `GEMINI_API_KEY`：[Google AI Studio](https://aistudio.google.com/)
+- `TAVILY_API_KEY`（選填）：[Tavily](https://tavily.com/)，留空則 Agent 不會上網搜尋
