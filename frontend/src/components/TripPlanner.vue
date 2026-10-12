@@ -27,6 +27,18 @@ const emit = defineEmits(['go-search'])
 
 const typeLabel = (item) => (item.type === 'hotel' ? '住宿' : '景點')
 
+// 日期重疊的住宿（同一晚不可能住兩間），在清單上標示出來
+const overlapIds = computed(() => {
+  const hotels = trip.items.filter((i) => i.type === 'hotel' && i.checkin && i.checkout)
+  const ids = new Set()
+  hotels.forEach((a, n) =>
+    hotels.slice(n + 1).forEach((b) => {
+      if (a.checkin < b.checkout && b.checkin < a.checkout) ids.add(a.id).add(b.id)
+    }),
+  )
+  return ids
+})
+
 const MAX_TEXT = 500
 const messages = ref([]) // { role: 'user' | 'model', text, order? }
 const input = ref('')
@@ -152,6 +164,7 @@ const nameOf = (id) => trip.items.find((i) => i.id === id)?.name ?? '？'
                   {{ typeLabel(item) }}
                   <span v-if="item.checkin">・{{ shortDate(item.checkin) }}–{{ shortDate(item.checkout) }}</span>
                   <span v-if="item.area">・{{ item.area }}</span>
+                  <span v-if="overlapIds.has(item.id)" class="overlap">・⚠ 日期重疊</span>
                 </div>
                 <div class="row-actions">
                   <a v-if="item.reserveUrl" :href="item.reserveUrl" target="_blank" rel="noopener noreferrer">到樂天訂房</a>
@@ -505,6 +518,10 @@ const nameOf = (id) => trip.items.find((i) => i.id === id)?.name ?? '？'
   flex: 1 1 100%;
   margin: 2px 0 0;
   font-size: 0.8rem;
+}
+.overlap {
+  color: var(--price);
+  font-weight: 700;
 }
 .arrow {
   margin: 0 6px;

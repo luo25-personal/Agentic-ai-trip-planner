@@ -174,6 +174,16 @@ def _is_error(msg: ToolMessage) -> bool:
         return False
 
 
+# AI 偶爾會把「呼叫工具」寫成文字，例如 <function:propose_order data='...'></function:propose_order>
+FAKE_TOOL_BLOCK = re.compile(r"<\s*(function|tool_call)\b[^>]*>.*?<\s*/\s*(function|tool_call)\b[^>]*>", re.S | re.I)
+FAKE_TOOL_TAG = re.compile(r"<\s*/?\s*(function|tool_call)\b[^>]*>", re.I)
+
+
+def strip_fake_tool_calls(text: str) -> str:
+    """把回覆裡假的工具呼叫文字拿掉，不顯示給使用者。"""
+    return FAKE_TOOL_TAG.sub("", FAKE_TOOL_BLOCK.sub("", text or "")).strip()
+
+
 URL_PATTERN = re.compile(r"https?://[^\s\"'<>)\]]+")
 
 
@@ -223,7 +233,7 @@ def _collect(history: list) -> dict:
                         spots.append(spot)
 
     return {
-        "reply": reply.strip(),
+        "reply": strip_fake_tool_calls(reply),
         "steps": steps,
         "hotels": hotels,
         "weather": _trip_weather(weather, hotels),
