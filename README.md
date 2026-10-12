@@ -59,6 +59,10 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 ## 設計決策
 
+### AI 模型：Google Gemini
+
+目前選用 Gemini 進行開發，原因是目前的設備效能不足以在本機執行模型，後續會考慮更換設備、改用本地模型。
+
 ### 資料來源：只用官方開放的 API
 
 評估過的選項與結論：
@@ -71,14 +75,9 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 | Google Hotels（第三方 API） | △ | 只有價格，無法判斷是否有空房；免費額度少 |
 | **樂天トラベル空室検索API** | ✓ | 官方公開、免費、可直接判斷有無空房、可篩選禁菸房 |
 
-### AI 模型：Google Gemini
-
-目前選用 Gemini 進行開發，原因是目前的設備效能不足以在本機執行模型，後續會考慮更換設備、改用本地模型。
-
 ## 使用限制
 
-- AI 功能（和 AI 聊聊、行程規劃的對話、AI 旅遊書）每人每 10 分鐘最多共 20 次，超過時請稍候再試。
-- AI 使用免費額度，使用量大時可能暫時無法使用。
+由於模型 API 額度有限，AI 功能（和 AI 聊聊、行程規劃的對話、AI 旅遊書）每人每 10 分鐘最多共 20 次，超過時請稍候再試。
 
 ## 使用條款遵循
 
