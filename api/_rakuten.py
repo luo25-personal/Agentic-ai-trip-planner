@@ -8,6 +8,7 @@
 - search_plans()：指定一間飯店，列出所有可訂的房型方案（searchPattern=1）。
 """
 
+import logging
 import os
 
 import requests
@@ -54,6 +55,12 @@ def _call(params: dict) -> dict | None:
 
     if resp.status_code == 404:
         return None
+    if resp.status_code != 200:
+        # 在伺服器紀錄樂天的錯誤代碼，方便除錯（例如 403 是哪一種拒絕）。
+        # 只記錄錯誤代碼和說明，不記錄請求網址，避免金鑰出現在紀錄裡
+        logging.getLogger(__name__).warning(
+            "樂天回應 %s：%s", resp.status_code, _error_detail(resp)
+        )
     if resp.status_code == 429:
         raise RakutenError(429, "查詢太頻繁，請稍後再試")
     if resp.status_code == 400:
@@ -64,6 +71,20 @@ def _call(params: dict) -> dict | None:
         return resp.json()
     except ValueError:
         raise RakutenError(502, "樂天回應格式錯誤")
+
+
+def _error_detail(resp) -> str:
+    """樂天有兩種錯誤格式：{"error", "error_description"} 和 {"errors": {"errorCode", "errorMessage"}}"""
+    try:
+        body = resp.json()
+    except ValueError:
+        return "（回應不是 JSON）"
+    if not isinstance(body, dict):
+        return "（無法解析）"
+    errors = body.get("errors") if isinstance(body.get("errors"), dict) else {}
+    code = body.get("error") or errors.get("errorCode")
+    message = body.get("error_description") or errors.get("errorMessage")
+    return f"{code}｜{message}"[:300]
 
 
 def _split(item) -> tuple[dict, list[dict]]:
