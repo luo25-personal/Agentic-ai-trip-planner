@@ -54,7 +54,6 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 - **日期不明確就先問**：「下週五」「月底」這類說法容易算錯，Agent 會先請使用者給確切的入住日期和晚數，再查空房。
 - **查不到就說查不到**：飯店名稱、價格只來自樂天的查詢結果；查詢失敗時直接告知，不會自己編出飯店。
-- **AI 漏呼叫工具時的保底**：AI 有時只在文字裡寫出建議順序（例如「3 → 1 → 2」）而沒呼叫工具，程式會從文字中解析出來，照樣顯示「套用這個順序」按鈕；回覆裡假的工具呼叫文字也會被清掉。
 - **工具結果再過濾**：天氣只保留旅行日期、重複的景點依座標去除、住宿日期重疊時由程式偵測並暫停排序，請使用者先決定住哪一間。
 - **建議由使用者決定**：AI 建議的順序不會直接改掉清單，要使用者按下「套用」才會生效。
 
@@ -68,20 +67,18 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 |---|---|---|
 | Booking.com / Agoda API | ✗ | 僅限簽約的合作夥伴 |
 | 爬取訂房網站 | ✗ | 違反使用條款，且不穩定 |
-| Web search | ✗（空房、價格） | 無法帶日期查詢，資料不即時，LLM 容易把舊資訊當成現況；只用在景點、活動等一般資訊 |
+| Web search | ✗（空房、價格） | 搜尋結果多來自其他訂房網站，拿來顯示價格與空房可能違反使用條款；只用在景點、活動等一般資訊 |
 | Google Hotels（第三方 API） | △ | 只有價格，無法判斷是否有空房；免費額度少 |
 | **樂天トラベル空室検索API** | ✓ | 官方公開、免費、可直接判斷有無空房、可篩選禁菸房 |
 
-### 為什麼需要後端
+### AI 模型：Google Gemini
 
-即使把金鑰放在環境變數，純前端網站在建置時仍會把它打包進 JavaScript，訪客打開開發者工具就看得到。因此由後端函式持有金鑰，前端只呼叫自己的 `/api/*`。
+目前選用 Gemini 進行開發，原因是目前的設備效能不足以在本機執行模型，後續會考慮更換設備、改用本地模型。
 
-## 安全與隱私
+## 使用限制
 
-- **金鑰只存在伺服器端**：放在 Vercel 環境變數，不進程式碼、不進 git 歷史，前端也拿不到。
-- **後端防護**：參數白名單（避免被當成任意代理）、AI 相關 API 的每個 IP 頻率限制、飯店查詢的回應快取；沒有開放跨網域（CORS），其他網站的網頁無法直接呼叫。
-- **錯誤處理不外洩**：錯誤訊息不回傳上游請求內容。
-- **不蒐集個資**：不需要登入、不保存搜尋紀錄、不使用追蹤工具。行程清單只暫存在使用者自己的瀏覽器（sessionStorage），關掉分頁就清除。
+- AI 功能（和 AI 聊聊、行程規劃的對話、AI 旅遊書）每人每 10 分鐘最多共 20 次，超過時請稍候再試。
+- AI 使用免費額度，使用量大時可能暫時無法使用。
 
 ## 使用條款遵循
 
@@ -111,22 +108,8 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 ## 本機開發
 
-需要 Python 3.10+ 與 Node.js 20.19+。
+需要自行申請以下金鑰，填入 `.env.local`（範本見 `.env.example`）：
 
-```bash
-# 後端
-pip install -r requirements-dev.txt
-cp .env.example .env.local      # Windows 用 copy .env.example .env.local
-python scripts/dev_server.py    # http://127.0.0.1:8000
-
-# 前端（另開一個終端機）
-cd frontend
-npm install
-npm run dev                     # 打開 http://localhost:5173
-```
-
-`.env.local` 需要填入自己的金鑰（說明見 `.env.example`）：
-
-- `RAKUTEN_APPLICATION_ID`、`RAKUTEN_ACCESS_KEY`：[Rakuten Web Service](https://webservice.rakuten.co.jp/)
-- `GEMINI_API_KEY`：[Google AI Studio](https://aistudio.google.com/)
-- `TAVILY_API_KEY`（選填）：[Tavily](https://tavily.com/)，留空則 Agent 不會上網搜尋
+- `RAKUTEN_APPLICATION_ID`、`RAKUTEN_ACCESS_KEY`（Rakuten Web Service）
+- `GEMINI_API_KEY`（Google AI Studio）
+- `TAVILY_API_KEY`（選填，留空則 Agent 不會上網搜尋）
