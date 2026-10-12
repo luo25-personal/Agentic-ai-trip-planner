@@ -1,0 +1,66 @@
+/* 全站共用：色彩、字體、基本樣式。各元件自己的樣式寫在 .vue 檔的 <style scoped>。 */
+:root {
+  --bg: #e9eeec; /* 月台灰 */
+  --panel: #ffffff;
+  --ink: #1b2a33;
+  --muted: #5d6b72;
+  --rule: #cfd8d5;
+  --line: #1f7a5c; /* 路線色 */
+  --line-ink: #ffffff;
+  --price: #b26b00;
+  --error: #b3261e;
+  --radius: 6px;
+  --font-jp: 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #121a1f;
+    --panel: #1b252c;
+    --ink: #e6ecea;
+    --muted: #9aa9ae;
+    --rule: #2c3a42;
+    --line: #2f9c78;
+    --price: #f0b44c;
+    --error: #ff8a80;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #121a1f;
+  --panel: #1b252c;
+  --ink: #e6ecea;
+  --muted: #9aa9ae;
+  --rule: #2c3a42;
+  --line: #2f9c78;
+  --price: #f0b44c;
+  --error: #ff8a80;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans TC', system-ui, sans-serif;
+  line-height: 1.6;
+}
+:focus-visible {
+  outline: 3px solid var(--line);
+  outline-offset: 2px;
+}
+
+.jp {
+  font-family: var(--font-jp);
+}
+.muted {
+  color: var(--muted);
+}
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.wrap.wide {
+  max-width: 1200px; /* 行程規劃 tab 需要比較寬，放地圖＋行程 */
+}
