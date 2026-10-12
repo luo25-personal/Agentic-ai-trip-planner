@@ -1,8 +1,10 @@
 # Agentic AI Trip Planner
 
-AI agent for Japan travel planning: real-time hotel vacancy search, weather, and itinerary suggestions.
+An AI agent travel assistant:\
+Through chat, it understands what you need and calls tools on its own to recommend spots, search hotels, check the weather and plan your trip. View your itinerary on a map and export it as a guidebook.
 
-日本旅遊 AI Agent：即時空房查詢、天氣資訊與行程安排建議。
+旅遊 AI Agent 助手：\
+透過聊天理解使用者需求，自行調用工具進行景點推薦、住宿搜尋、天氣查詢並規劃旅程，行程可在地圖上查看，並匯出成旅遊書。
 
 > 🚧 **持續開發中（Work in progress）**
 
