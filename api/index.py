@@ -103,7 +103,7 @@ def plans(
 
 MAX_MESSAGES = 12  # 最多帶幾則對話紀錄
 MAX_TEXT = 500  # 每則訊息最多幾個字
-RATE_LIMIT = 8  # 每個 IP 在 RATE_WINDOW 秒內最多問幾次
+RATE_LIMIT = 20  # 每個 IP 在 RATE_WINDOW 秒內最多問幾次（兩個聊天和旅遊書共用）
 RATE_WINDOW = 600
 
 # 簡易頻率限制：記在記憶體裡。Vercel 可能同時開好幾個執行個體，
