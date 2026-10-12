@@ -1,0 +1,3 @@
+# 只在本機開發時需要，Vercel 不會安裝這個檔案
+-r requirements.txt
+uvicorn
