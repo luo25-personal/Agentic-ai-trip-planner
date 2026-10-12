@@ -17,6 +17,8 @@ Through chat, it understands what you need and calls tools on its own to recomme
 - **Backend**：Python · FastAPI
 - **Deployment**：Vercel
 
+<br>
+
 ## 專案簡介
 
 以 AI Agent 為核心的日本旅遊規劃網站。語言模型會根據使用者的敘述，自行決定要調用哪些工具（即時空房、天氣、景點定位）或上網搜尋資料。使用者透過聊天，就能一步步聊出想去的景點和住宿；選好的地點會標示在地圖上，最後還能生成旅遊書，一鍵存成 PDF。
@@ -25,6 +27,8 @@ Through chat, it understands what you need and calls tools on its own to recomme
 - **MCP 整合**：網路搜尋透過 Model Context Protocol 接入 Tavily。
 - **多個分工的 Agent**：聊天 Agent 負責找飯店和景點；行程 Agent 讀取行程清單與距離，建議造訪順序；旅遊書以結構化輸出（Pydantic schema）產生固定格式的內容。
 
+<br>
+
 ## 功能
 
 - **和 AI 聊聊**：用一句話描述需求（日期、地點、人數），AI Agent 自己決定要查空房、天氣、景點或上網搜尋，結果以卡片呈現
@@ -32,6 +36,8 @@ Through chat, it understands what you need and calls tools on its own to recomme
 - **行程規劃**：跟另一個 AI 討論造訪順序，建議的順序由使用者決定是否套用
 - **AI 旅遊書**：依行程清單產生每日行程、介紹與小提醒，可另存成 PDF
 - **自己搜尋飯店**：不經過 AI，直接查車站周邊的空房與房型
+
+<br>
 
 ## 架構
 
@@ -61,6 +67,8 @@ Through chat, it understands what you need and calls tools on its own to recomme
 | `POST /api/guidebook` | AI 旅遊書：根據行程清單寫旅遊書內容（固定格式），前端排版後可另存成 PDF |
 | `POST /api/trip-chat` | 行程討論 Agent：送出對話和行程清單，回覆建議的造訪順序（由使用者決定是否套用） |
 
+<br>
+
 ## Agent 設計
 
 價格、空房、天氣只取自工具結果，以卡片顯示，不經 AI 改寫，避免幻覺；AI 負責理解需求、選擇工具與整理建議。前端會顯示 Agent 使用了哪些工具。
@@ -71,6 +79,8 @@ Through chat, it understands what you need and calls tools on its own to recomme
 - **查不到就說查不到**：飯店名稱、價格只來自樂天的查詢結果；查詢失敗時直接告知，不會自己編出飯店。
 - **工具結果再過濾**：天氣只保留旅行日期、重複的景點依座標去除、住宿日期重疊時由程式偵測並暫停排序，請使用者先決定住哪一間。
 - **建議由使用者決定**：AI 建議的順序不會直接改掉清單，要使用者按下「套用」才會生效。
+
+<br>
 
 ## 設計決策
 
@@ -90,9 +100,13 @@ Through chat, it understands what you need and calls tools on its own to recomme
 | Google Hotels（第三方 API） | △ | 只有價格，無法判斷是否有空房；免費額度少 |
 | **樂天トラベル空室検索API** | ✓ | 官方公開、免費、可直接判斷有無空房、可篩選禁菸房 |
 
+<br>
+
 ## 使用限制
 
 由於模型 API 額度有限，AI 功能（和 AI 聊聊、行程規劃的對話、AI 旅遊書）每人每 10 分鐘最多共 20 次，超過時請稍候再試。
+
+<br>
 
 ## 使用條款遵循
 
@@ -104,6 +118,8 @@ Through chat, it understands what you need and calls tools on its own to recomme
 - 控制請求頻率並使用快取，避免對 API 造成負擔
 - 標示資料來源，並聲明非官方服務
 
+<br>
+
 ## 資料來源
 
 | 資料 | 來源 |
@@ -114,11 +130,15 @@ Through chat, it understands what you need and calls tools on its own to recomme
 | 網路搜尋（景點、活動資訊） | [Tavily](https://tavily.com/) |
 | AI 模型 | [Google Gemini](https://ai.google.dev/) |
 
+<br>
+
 ## 聲明
 
 - 本網站由個人開發與經營，**非樂天集團官方服務**，與樂天集團無合作關係。
 - 空房與價格以各訂房頁面顯示為準，本網站不保證資料的正確性與即時性。
 - 本網站不蒐集、不保存使用者的個人資料。
+
+<br>
 
 ## 本機開發
 
