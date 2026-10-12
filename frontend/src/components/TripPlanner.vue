@@ -13,8 +13,11 @@ import {
   applyOrder,
   clearTrip,
   directionsUrl,
+  hotelsOf,
   isCurrentOrder,
   itemsForAgent,
+  orderedItems,
+  spotsOf,
   moveItem,
   removeItem,
   sameOrderSet,
@@ -25,7 +28,10 @@ import { renderReply, shortDate } from '../utils.js'
 defineProps({ active: Boolean })
 const emit = defineEmits(['go-search'])
 
-const typeLabel = (item) => (item.type === 'hotel' ? '住宿' : '景點')
+// 住宿照入住日期排列（順序固定）；景點是使用者排的順序
+const hotels = computed(() => hotelsOf(trip.items))
+const spots = computed(() => spotsOf(trip.items))
+const mapItems = computed(() => orderedItems(trip.items))
 
 // 日期重疊的住宿（同一晚不可能住兩間），在清單上標示出來
 const overlapIds = computed(() => {
@@ -99,14 +105,16 @@ function flash(text) {
 }
 
 // AI 旅遊書：清單沒變就沿用上次的內容，不重複呼叫 AI（省免費額度）
-const guide = ref({ open: false, loading: false, book: null, error: '', key: '' })
+const guide = ref({ open: false, loading: false, book: null, error: '', key: '', items: [] })
 const guideKey = () => JSON.stringify(itemsForAgent())
 
 async function openGuidebook(force = false) {
   guide.value.open = true
   const key = guideKey()
   if (!force && guide.value.key === key && guide.value.book) return
-  guide.value = { open: true, loading: true, book: null, error: '', key }
+  // 旅遊書的編號對應送給 AI 的清單，所以把當下的清單一起記下來（住宿在前、景點在後）
+  const items = orderedItems().filter((i) => Number.isFinite(i.lat) && Number.isFinite(i.lng))
+  guide.value = { open: true, loading: true, book: null, error: '', key, items }
   try {
     guide.value.book = await generateGuidebook(itemsForAgent())
   } catch (e) {
@@ -119,7 +127,7 @@ async function openGuidebook(force = false) {
 
 async function copyTrip() {
   try {
-    await navigator.clipboard.writeText(shareText(trip.items, aiNote.value))
+    await navigator.clipboard.writeText(shareText(orderedItems(), aiNote.value))
     flash('已複製行程文字，可以貼到 Discord、LINE 或 Email')
   } catch {
     flash('無法複製，請改用「下載旅遊書」')
@@ -138,7 +146,7 @@ const nameOf = (id) => trip.items.find((i) => i.id === id)?.name ?? '？'
     <div class="layout">
       <!-- 左：地圖 -->
       <div class="map-cell">
-        <TripMap :items="trip.items" :active="active" />
+        <TripMap :items="mapItems" :active="active" />
       </div>
 
       <!-- 右：文字行程 -->
@@ -154,37 +162,63 @@ const nameOf = (id) => trip.items.find((i) => i.id === id)?.name ?? '？'
           <button type="button" class="primary" @click="emit('go-search')">去找住宿和景點</button>
         </div>
 
-        <ol v-else class="items">
-          <template v-for="(item, i) in trip.items" :key="item.id">
-            <li class="item">
-              <span class="num" :class="`num-${item.type}`">{{ i + 1 }}</span>
-              <div class="body">
-                <div class="name jp">{{ item.name }}</div>
-                <div class="meta muted">
-                  {{ typeLabel(item) }}
-                  <span v-if="item.checkin">・{{ shortDate(item.checkin) }}–{{ shortDate(item.checkout) }}</span>
-                  <span v-if="item.area">・{{ item.area }}</span>
-                  <span v-if="overlapIds.has(item.id)" class="overlap">・⚠ 日期重疊</span>
+        <template v-else>
+          <!-- 住宿：依入住日期排列，不用排順序 -->
+          <section v-if="hotels.length" class="group">
+            <h3 class="group-head">住宿（{{ hotels.length }}）<span class="muted">依入住日期排列</span></h3>
+            <ul class="items">
+              <li v-for="item in hotels" :key="item.id" class="item item-hotel">
+                <span class="num num-hotel">宿</span>
+                <div class="body">
+                  <div class="name jp">{{ item.name }}</div>
+                  <div class="meta muted">
+                    <span v-if="item.checkin">{{ shortDate(item.checkin) }}–{{ shortDate(item.checkout) }}</span>
+                    <span v-else>沒有日期</span>
+                    <span v-if="overlapIds.has(item.id)" class="overlap">・⚠ 日期重疊</span>
+                  </div>
+                  <div class="row-actions">
+                    <a v-if="item.reserveUrl" :href="item.reserveUrl" target="_blank" rel="noopener noreferrer">到樂天訂房</a>
+                    <span class="actions">
+                      <button type="button" aria-label="移除" @click="removeItem(item.id)">✕</button>
+                    </span>
+                  </div>
                 </div>
-                <div class="row-actions">
-                  <a v-if="item.reserveUrl" :href="item.reserveUrl" target="_blank" rel="noopener noreferrer">到樂天訂房</a>
-                  <span class="actions">
-                    <button type="button" :disabled="i === 0" aria-label="往上移" @click="moveItem(item.id, -1)">↑</button>
-                    <button type="button" :disabled="i === trip.items.length - 1" aria-label="往下移" @click="moveItem(item.id, 1)">↓</button>
-                    <button type="button" aria-label="移除" @click="removeItem(item.id)">✕</button>
-                  </span>
-                </div>
-              </div>
-            </li>
-            <li v-if="i < trip.items.length - 1" class="leg">
-              <a :href="directionsUrl(item, trip.items[i + 1])" target="_blank" rel="noopener noreferrer">
-                ↓ {{ i + 1 }} → {{ i + 2 }} 交通方式（Google 地圖）
-              </a>
-            </li>
-          </template>
-        </ol>
+              </li>
+            </ul>
+          </section>
 
-        <p v-if="trip.items.length > 1" class="muted note">地圖虛線只代表順序，不是實際路線。</p>
+          <!-- 景點：使用者排的順序，可以上下移動 -->
+          <section v-if="spots.length" class="group">
+            <h3 class="group-head">景點（{{ spots.length }}）<span class="muted">可以調整順序</span></h3>
+            <ol class="items">
+              <template v-for="(item, i) in spots" :key="item.id">
+                <li class="item">
+                  <span class="num num-spot">{{ i + 1 }}</span>
+                  <div class="body">
+                    <div class="name jp">{{ item.name }}</div>
+                    <div class="meta muted">
+                      <span v-if="item.area">{{ item.area }}</span>
+                    </div>
+                    <div class="row-actions">
+                      <span class="actions">
+                        <button type="button" :disabled="i === 0" aria-label="往上移" @click="moveItem(item.id, -1)">↑</button>
+                        <button type="button" :disabled="i === spots.length - 1" aria-label="往下移" @click="moveItem(item.id, 1)">↓</button>
+                        <button type="button" aria-label="移除" @click="removeItem(item.id)">✕</button>
+                      </span>
+                    </div>
+                  </div>
+                </li>
+                <li v-if="i < spots.length - 1" class="leg">
+                  <a :href="directionsUrl(item, spots[i + 1])" target="_blank" rel="noopener noreferrer">
+                    ↓ {{ i + 1 }} → {{ i + 2 }} 交通方式（Google 地圖）
+                  </a>
+                </li>
+              </template>
+            </ol>
+          </section>
+        </template>
+
+        <p v-if="spots.length > 1" class="muted note">地圖虛線只代表景點的順序，不是實際路線。</p>
 
         <div v-if="trip.items.length" class="export">
           <button type="button" class="primary small" @click="openGuidebook()">製作旅遊書（AI）</button>
@@ -249,12 +283,12 @@ const nameOf = (id) => trip.items.find((i) => i.id === id)?.name ?? '？'
     </div>
     <TripGuide
       :open="guide.open"
-      :items="trip.items"
+      :items="guide.items"
       :book="guide.book"
       :loading="guide.loading"
       :error="guide.error"
       @close="guide.open = false"
-      @download="printGuidebook(trip.items)"
+      @download="printGuidebook(guide.items)"
       @regenerate="openGuidebook(true)"
     />
   </section>
@@ -518,6 +552,26 @@ const nameOf = (id) => trip.items.find((i) => i.id === id)?.name ?? '？'
   flex: 1 1 100%;
   margin: 2px 0 0;
   font-size: 0.8rem;
+}
+.group + .group {
+  margin-top: 14px;
+}
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+}
+.group-head .muted {
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+.items li.item + li.item {
+  margin-top: 6px;
+}
+.item-hotel {
+  border-left-color: #b26b00;
 }
 .overlap {
   color: var(--price);

@@ -31,13 +31,24 @@ const plainText = (md) =>
 
 /** 複製用的純文字（貼到 Discord、LINE、Email 都能看） */
 export function shareText(items, aiNote = '') {
-  const lines = [`我的日本行程${tripDates(items) ? `（${tripDates(items)}）` : ''}`, '']
-  items.forEach((item, i) => {
-    lines.push(`${i + 1}. ${item.name}（${itemMeta(item)}）`)
-    if (item.reserveUrl) lines.push(`   訂房：${item.reserveUrl}`)
-    else lines.push(`   地圖：${mapUrl(item.lat, item.lng)}`)
-    if (i < items.length - 1) lines.push(`   ↓ 交通方式：${directionsUrl(item, items[i + 1])}`)
-  })
+  const hotels = items.filter((i) => i.type === 'hotel')
+  const spots = items.filter((i) => i.type !== 'hotel')
+  const lines = [`我的日本行程${tripDates(items) ? `（${tripDates(items)}）` : ''}`]
+  if (hotels.length) {
+    lines.push('', '【住宿】')
+    hotels.forEach((h) => {
+      lines.push(`・${h.name}（${itemMeta(h)}）`)
+      lines.push(`   ${h.reserveUrl ? `訂房：${h.reserveUrl}` : `地圖：${mapUrl(h.lat, h.lng)}`}`)
+    })
+  }
+  if (spots.length) {
+    lines.push('', '【景點】')
+    spots.forEach((p, i) => {
+      lines.push(`${i + 1}. ${p.name}（${itemMeta(p)}）`)
+      lines.push(`   地圖：${mapUrl(p.lat, p.lng)}`)
+      if (i < spots.length - 1) lines.push(`   ↓ 交通方式：${directionsUrl(p, spots[i + 1])}`)
+    })
+  }
   if (aiNote) lines.push('', 'AI 建議：', plainText(aiNote))
   lines.push('', `由 ${SITE_NAME} 整理，空房與價格以樂天訂房頁面為準。`)
   return lines.join('\n')

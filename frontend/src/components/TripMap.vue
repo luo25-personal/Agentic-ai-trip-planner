@@ -1,6 +1,6 @@
 <script setup>
 // 行程地圖：Leaflet（地圖程式）＋ OpenStreetMap（地圖圖資），都免費、不用金鑰。
-// 依清單順序在地圖上標號，並用虛線連起來表示順序（不是實際的交通路線）。
+// 住宿標「宿」；景點依清單順序標號，並用虛線連起來表示順序（不是實際的交通路線）。
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -34,13 +34,17 @@ function draw() {
     return
   }
   const latlngs = points.map((p) => [p.lat, p.lng])
-  points.forEach((p, i) => {
-    const marker = L.marker([p.lat, p.lng], { icon: numberIcon(i + 1, p.type), title: p.name })
+  // 住宿標「宿」（順序由日期決定，不編號）；景點照順序編號，虛線只連景點
+  let n = 0
+  points.forEach((p) => {
+    const label = p.type === 'hotel' ? '宿' : ++n
+    const marker = L.marker([p.lat, p.lng], { icon: numberIcon(label, p.type), title: p.name })
     marker.bindTooltip(p.name) // bindTooltip 會把文字當純文字處理
     layer.addLayer(marker)
   })
-  if (latlngs.length > 1) {
-    layer.addLayer(L.polyline(latlngs, { color: '#1f7a5c', weight: 3, dashArray: '6 6', opacity: 0.8 }))
+  const spotLine = points.filter((p) => p.type !== 'hotel').map((p) => [p.lat, p.lng])
+  if (spotLine.length > 1) {
+    layer.addLayer(L.polyline(spotLine, { color: '#1f7a5c', weight: 3, dashArray: '6 6', opacity: 0.8 }))
   }
   map.fitBounds(L.latLngBounds(latlngs).pad(0.25), { maxZoom: 15 })
 }

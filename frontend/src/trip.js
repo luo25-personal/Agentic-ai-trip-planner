@@ -79,36 +79,57 @@ export function removeItem(id) {
   if (index >= 0) trip.items.splice(index, 1)
 }
 
-/** 往上（-1）或往下（+1）移動一格 */
+// ── 住宿和景點分開處理 ──
+// 住宿照入住日期排列（順序固定，不用手動排）；景點保持使用者排的順序，可以上下移動
+
+/** 住宿（依入住日期，沒有日期的放最後） */
+export const hotelsOf = (items) =>
+  items
+    .filter((i) => i.type === 'hotel')
+    .sort((a, b) => (a.checkin || '9999').localeCompare(b.checkin || '9999') || a.name.localeCompare(b.name))
+
+/** 景點（使用者排的順序） */
+export const spotsOf = (items) => items.filter((i) => i.type !== 'hotel')
+
+/** 住宿在前（依日期）、景點在後（依順序）：地圖、AI、旅遊書都用這個順序 */
+export const orderedItems = (items = trip.items) => [...hotelsOf(items), ...spotsOf(items)]
+
+/** 景點往上（-1）或往下（+1）移動一格（只在景點之間移動） */
 export function moveItem(id, step) {
-  const from = trip.items.findIndex((i) => i.id === id)
+  const spots = spotsOf(trip.items)
+  const from = spots.findIndex((i) => i.id === id)
   const to = from + step
-  if (from < 0 || to < 0 || to >= trip.items.length) return
-  const [item] = trip.items.splice(from, 1)
-  trip.items.splice(to, 0, item)
+  if (from < 0 || to < 0 || to >= spots.length) return
+  const [moved] = spots.splice(from, 1)
+  spots.splice(to, 0, moved)
+  trip.items.splice(0, trip.items.length, ...hotelsOf(trip.items), ...spots)
 }
 
-/** 套用 AI 建議的順序（項目 id 陣列）；清單已經變動、對不上時不套用，回傳 false */
+/** 套用 AI 建議的景點順序（景點 id 陣列）；清單已經變動、對不上時不套用，回傳 false */
 export function applyOrder(ids) {
   if (!sameOrderSet(ids)) return false
   const byId = new Map(trip.items.map((i) => [i.id, i]))
-  trip.items.splice(0, trip.items.length, ...ids.map((id) => byId.get(id)))
+  trip.items.splice(0, trip.items.length, ...hotelsOf(trip.items), ...ids.map((id) => byId.get(id)))
   return true
 }
 
-/** 建議順序是否還對得上目前的清單（項目沒有增減） */
+/** 建議順序是否還對得上目前的景點（景點沒有增減） */
 export function sameOrderSet(ids) {
-  if (!Array.isArray(ids) || ids.length !== trip.items.length) return false
-  const current = new Set(trip.items.map((i) => i.id))
+  const spots = spotsOf(trip.items)
+  if (!Array.isArray(ids) || ids.length !== spots.length) return false
+  const current = new Set(spots.map((i) => i.id))
   return new Set(ids).size === ids.length && ids.every((id) => current.has(id))
 }
 
-/** 是否已經是這個順序 */
-export const isCurrentOrder = (ids) => ids.every((id, n) => trip.items[n]?.id === id)
+/** 景點是否已經是這個順序 */
+export const isCurrentOrder = (ids) => {
+  const spots = spotsOf(trip.items)
+  return ids.every((id, n) => spots[n]?.id === id)
+}
 
 /** 傳給行程 Agent 的資料：只送需要的欄位，沒有座標的項目無法算距離就不送 */
 export function itemsForAgent() {
-  return trip.items
+  return orderedItems()
     .filter((i) => Number.isFinite(i.lat) && Number.isFinite(i.lng))
     .map(({ id, type, name, lat, lng, checkin, checkout, area }) => ({
       id,

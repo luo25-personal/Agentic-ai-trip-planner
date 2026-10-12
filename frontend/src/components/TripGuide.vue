@@ -30,6 +30,12 @@ const content = computed(
 )
 
 const itemOf = (stop) => props.items[stop.ref - 1]
+// 跟行程清單一樣：住宿標「宿」，景點照景點的順序編號
+const badge = (stop) => {
+  const item = itemOf(stop)
+  if (item.type === 'hotel') return '宿'
+  return props.items.filter((i) => i.type !== 'hotel').indexOf(item) + 1
+}
 const WEEK = '日一二三四五六'
 const dayDate = (d) => (d ? `${shortDate(d)}（${WEEK[new Date(`${d}T00:00:00`).getDay()]}）` : '')
 const nextStop = (day, i) => day.stops[i + 1]
@@ -91,7 +97,7 @@ const nextStop = (day, i) => day.stops[i + 1]
                   />
                   <div class="gb-card-body">
                     <h2>
-                      <span class="gb-num">{{ stop.ref }}</span>{{ itemOf(stop).name }}
+                      <span class="gb-num">{{ badge(stop) }}</span>{{ itemOf(stop).name }}
                     </h2>
                     <p class="gb-meta">{{ itemMeta(itemOf(stop)) }}</p>
                     <p v-if="stop.description" class="gb-desc">{{ stop.description }}</p>
