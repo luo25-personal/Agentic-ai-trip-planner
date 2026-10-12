@@ -4,23 +4,45 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 日本旅遊 AI Agent：即時空房查詢、天氣資訊與行程安排建議。
 
-> 🚧 開發中（Work in progress）。目前完成：專案規劃、資料來源評估、架構設計。下一步：空房查詢後端。
+> 🚧 **持續開發中（Work in progress）**
+
+## 功能
+
+- **AI 規劃**：用一句話描述需求（日期、地點、人數），AI Agent 自己決定要查空房、天氣、景點或上網搜尋，結果以卡片呈現
+- **行程購物車**：飯店和景點卡片都能「＋ 加入行程」，在地圖上看位置
+- **行程規劃**：跟另一個 AI 討論造訪順序，建議的順序由使用者決定是否套用
+- **AI 旅遊書**：依行程清單產生每日行程、介紹與小提醒，可另存成 PDF
+- **自己搜尋飯店**：不經過 AI，直接查車站周邊的空房與房型
 
 ## 架構
 
 ```
-瀏覽器 ──► 前端（靜態網頁）──► /api/search（Vercel 後端函式）──► 樂天トラベル空室検索API
+瀏覽器 ──► 前端（Vue 3 + Vite）──► /api/*（FastAPI，Vercel 後端函式）
+                                        │
+                                        ├─ /api/chat ──► AI Agent（LangChain + Gemini）──► 工具
+                                        │                                    ├─ find_place    → Nominatim（OpenStreetMap）／Open-Meteo Geocoding
+                                        │                                    ├─ search_hotels → 樂天トラベル空室検索API
+                                        │                                    ├─ get_weather   → Open-Meteo Forecast
+                                        │                                    ├─ show_spots    → Nominatim（推薦景點的真實座標 → 可加入行程的卡片）
+                                        │                                    └─ 網路搜尋      → Tavily（MCP）
+                                        ├─ /api/trip-chat ──► 行程討論 Agent（讀行程清單＋直線距離）──► propose_order（建議順序）
+                                        ├─ /api/guidebook ──► Gemini 結構化輸出（固定格式的旅遊書內容）
+                                        └─ /api/hotels ──► 樂天トラベル空室検索API（手動搜尋）
 ```
 
-- **前端**：靜態網頁，輸入條件並顯示結果。
-- **後端函式**：保管 API 金鑰、檢查參數、快取與頻率限制。
+- **前端**：Vue 3 + Vite，元件化（`frontend/src/components/`）。先列出有空房的飯店與最低價，點開再看該飯店的所有房型。
+- **後端函式**：Python（FastAPI），保管 API 金鑰、檢查參數、快取。
 - **部署**：Vercel。
 
-### 規劃中
+| API | 用途 |
+|---|---|
+| `GET /api/hotels` | 車站周邊有空房的飯店，每間附最低價方案 |
+| `GET /api/hotels/{hotelNo}/plans` | 單一飯店所有可訂的房型方案 |
+| `POST /api/chat` | AI Agent：輸入一段文字，Agent 自己決定要呼叫哪些工具 |
+| `POST /api/guidebook` | AI 旅遊書：根據行程清單寫旅遊書內容（固定格式），前端排版後可另存成 PDF |
+| `POST /api/trip-chat` | 行程討論 Agent：送出對話和行程清單，回覆建議的造訪順序（由使用者決定是否套用） |
 
-- **Supervisor 多 Agent 架構**：空房 Agent、天氣 Agent、行程 Agent，由 Supervisor 分派與整合
-- 自然語言查詢（Gemini），例如「8/6 青森站附近禁菸雙人房，一晚 8,000 日圓內」
-- 客滿時自動搜尋附近的替代飯店或調整日期
+**Agent 設計**：價格、空房、天氣只取自工具結果，以卡片顯示，不經 AI 改寫，避免幻覺；AI 負責理解需求、選擇工具與整理建議。前端會顯示 Agent 使用了哪些工具。
 
 ## 設計決策
 
@@ -38,15 +60,14 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 ### 為什麼需要後端
 
-即使把金鑰放在環境變數，純前端網站在建置時仍會把它打包進 JavaScript，訪客打開開發者工具就看得到。因此由後端函式持有金鑰，前端只呼叫自己的 `/api/search`。
+即使把金鑰放在環境變數，純前端網站在建置時仍會把它打包進 JavaScript，訪客打開開發者工具就看得到。因此由後端函式持有金鑰，前端只呼叫自己的 `/api/*`。
 
 ## 安全與隱私
 
 - **金鑰只存在伺服器端**：放在 Vercel 環境變數，不進程式碼、不進 git 歷史，前端也拿不到。
-- **後端防護**：參數白名單（避免被當成任意代理）、每個 IP 的頻率限制、回應快取、CORS 只允許本站。
+- **後端防護**：參數白名單（避免被當成任意代理）、AI 相關 API 的每個 IP 頻率限制、飯店查詢的回應快取；沒有開放跨網域（CORS），其他網站的網頁無法直接呼叫。
 - **錯誤處理不外洩**：錯誤訊息不回傳上游請求內容。
-- **網域白名單**：API 端只接受來自本站網域的請求。
-- **不蒐集個資**：不需要登入、不保存搜尋紀錄、不使用追蹤工具。
+- **不蒐集個資**：不需要登入、不保存搜尋紀錄、不使用追蹤工具。行程清單只暫存在使用者自己的瀏覽器（sessionStorage），關掉分頁就清除。
 
 ## 使用條款遵循
 
@@ -62,8 +83,6 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 本網站的飯店與空房資料來自 [Rakuten Web Service](https://webservice.rakuten.co.jp/)。
 
-<!-- TODO: 依樂天官方標示規範放置「Supported by Rakuten Developers」標示 -->
-
 ## 聲明
 
 - 本網站由個人開發與經營，**非樂天集團官方服務**，與樂天集團無合作關係。
@@ -72,4 +91,16 @@ AI agent for Japan travel planning: real-time hotel vacancy search, weather, and
 
 ## 本機開發
 
-（待補）
+需要 Python 3.10+ 與 Node.js 20.19+。
+
+```bash
+# 後端
+pip install -r requirements-dev.txt
+cp .env.example .env.local      # 填入自己的樂天 API 金鑰
+python scripts/dev_server.py    # http://127.0.0.1:8000
+
+# 前端（另開一個終端機）
+cd frontend
+npm install
+npm run dev                     # 打開 http://localhost:5173
+```
